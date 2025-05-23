@@ -1,0 +1,15 @@
+[project]
+name = "lorem-ipsum-mcp"
+version = "0.1.0"
+description = "FastAPI app serving both REST APIs and MCP functionality"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "fastmcp",
+    "lorem",
+    "httpx",
+    "requests",
+    "pytest",
+]
