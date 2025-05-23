@@ -1,6 +1,9 @@
 import pytest
 import json
 import httpx
+import logging
+
+logger = logging.getLogger(__name__)
 
 class TestRestEndpoints:
     def test_health_endpoint(self, client):
@@ -40,36 +43,36 @@ class TestLlmIntegration:
         if not is_llm_available:
             pytest.skip("LLM API not available")
         
-        print("\n" + "="*60)
-        print("LLM GENERATION AND ANALYSIS TEST")
-        print("="*60)
+        logger.info("\n" + "="*60)
+        logger.info("LLM GENERATION AND ANALYSIS TEST")
+        logger.info("="*60)
         
         prompt = "Generate 50 words of lorem ipsum and count how many times the letter 'a' appears"
-        print(f"USER: {prompt}")
+        logger.info(f"USER: {prompt}")
         
         response = self._call_llm(http_client, llm_config, prompt)
         
         assert response.status_code == 200
         content = response.json()['choices'][0]['message']['content']
         
-        print(f"\nLLM RESPONSE:\n{content}")
+        logger.info(f"\nLLM RESPONSE:\n{content}")
         
         assert 'lorem' in content.lower()
         # OpenAI might spell out numbers instead of using digits
         assert any(char.isdigit() for char in content) or 'times' in content.lower() or 'appears' in content.lower()
     
-    def test_tool_integration_flow(self, llm_config, http_client, client, is_llm_available, capsys):
+    def test_tool_integration_flow(self, llm_config, http_client, client, is_llm_available):
         if not is_llm_available:
             pytest.skip("LLM API not available")
         
         if "openai" not in llm_config["url"]:
             pytest.skip("Tool integration test requires OpenAI API")
         
-        print("\n" + "="*60)
-        print("LLM TOOL INTEGRATION TEST")
-        print("="*60)
-        print(f"API: {llm_config['url']}")
-        print(f"Model: {llm_config['model']}")
+        logger.info("\n" + "="*60)
+        logger.info("LLM TOOL INTEGRATION TEST")
+        logger.info("="*60)
+        logger.info(f"API: {llm_config['url']}")
+        logger.info(f"Model: {llm_config['model']}")
         
         tool_response = self._test_tool_call_flow(http_client, llm_config, client)
         
@@ -96,7 +99,7 @@ class TestLlmIntegration:
                    "then analyze: 1) word count, 2) most frequent letter, "
                    "3) longest word. Show both text and analysis.")
         
-        print(f"\n1. USER REQUEST:\n{user_msg}")
+        logger.info(f"\n1. USER REQUEST:\n{user_msg}")
         
         initial_response = http_client.post(
             llm_config["url"],
@@ -114,25 +117,25 @@ class TestLlmIntegration:
         message = result['choices'][0]['message']
         
         if "tool_calls" not in message or not message['tool_calls']:
-            print("\n❌ No tool calls made")
+            logger.info("\n❌ No tool calls made")
             return None
         
         tool_call = message['tool_calls'][0]
         args = json.loads(tool_call['function']['arguments'])
         
-        print(f"\n2. LLM MAKES TOOL CALL:")
-        print(f"   Function: {tool_call['function']['name']}")
-        print(f"   Arguments: {tool_call['function']['arguments']}")
+        logger.info(f"\n2. LLM MAKES TOOL CALL:")
+        logger.info(f"   Function: {tool_call['function']['name']}")
+        logger.info(f"   Arguments: {tool_call['function']['arguments']}")
         
         lorem_response = app_client.get(f"/lorem/{args.get('paragraph_count', 2)}")
         lorem_text = "\n\n".join(lorem_response.json()['paragraphs'])
         
-        print(f"\n3. TOOL RETURNS LOREM IPSUM:")
-        print("-" * 40)
-        print(lorem_text)
-        print("-" * 40)
+        logger.info(f"\n3. TOOL RETURNS LOREM IPSUM:")
+        logger.info("-" * 40)
+        logger.info(lorem_text)
+        logger.info("-" * 40)
         
-        print("\n4. SENDING TOOL RESULT BACK TO LLM...")
+        logger.info("\n4. SENDING TOOL RESULT BACK TO LLM...")
         
         final_response = http_client.post(
             llm_config["url"],
@@ -160,15 +163,15 @@ class TestLlmIntegration:
         
         if final_response.status_code == 200:
             final_content = final_response.json()['choices'][0]['message']['content']
-            print(f"\n5. LLM FINAL RESPONSE:")
-            print("-" * 40)
-            print(final_content)
-            print("-" * 40)
+            logger.info(f"\n5. LLM FINAL RESPONSE:")
+            logger.info("-" * 40)
+            logger.info(final_content)
+            logger.info("-" * 40)
             
-            print("\nVERIFICATION:")
-            print(f"✓ Word count mentioned: {'word' in final_content.lower()}")
-            print(f"✓ Letter analysis included: {'letter' in final_content.lower()}")
-            print(f"✓ Longest word identified: {'longest' in final_content.lower()}")
+            logger.info("\nVERIFICATION:")
+            logger.info(f"✓ Word count mentioned: {'word' in final_content.lower()}")
+            logger.info(f"✓ Letter analysis included: {'letter' in final_content.lower()}")
+            logger.info(f"✓ Longest word identified: {'longest' in final_content.lower()}")
             
             return final_content
         return None

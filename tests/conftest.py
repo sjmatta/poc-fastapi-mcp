@@ -3,9 +3,13 @@ import httpx
 from fastapi.testclient import TestClient
 import sys
 from pathlib import Path
+import logging
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from main import app
+
+# Configure logging for tests
+logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 @pytest.fixture
 def client():

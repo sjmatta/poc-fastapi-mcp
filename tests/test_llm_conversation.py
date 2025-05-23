@@ -1,6 +1,9 @@
 import pytest
 import httpx
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 class TestLlmConversation:
     @pytest.fixture
