@@ -86,16 +86,45 @@ def test_lm_studio():
     result1 = resp1.json()
     result2 = resp2.json()
     
-    print(f"\nWithout tools: {'lorem' in result1['choices'][0]['message']['content'].lower()}")
+    print("\n" + "="*60)
+    print("LLM CONVERSATION TEST RESULTS")
+    print("="*60)
+    
+    print(f"\nTesting with: {LM_URL}")
+    print(f"Model: {LM_MODEL}")
+    print(f"API Key present: {'Yes' if API_KEY else 'No'}")
+    
+    print("\n1. WITHOUT TOOLS:")
+    print("-" * 40)
+    print("Request: Generate 50 words of lorem ipsum")
+    content1 = result1['choices'][0]['message']['content']
+    print(f"Response preview: {content1[:200]}...")
+    print(f"Contains 'lorem': {'lorem' in content1.lower()}")
+    
+    print("\n2. WITH TOOLS:")
+    print("-" * 40)
+    print("Request: Generate 2 paragraphs of lorem ipsum")
     
     # Check if tool was called
-    if "tool_calls" in result2['choices'][0]['message']:
-        tool_calls = result2['choices'][0]['message']['tool_calls']
-        print(f"With tools: Made {len(tool_calls)} tool call(s)")
+    message2 = result2['choices'][0]['message']
+    if "tool_calls" in message2 and message2['tool_calls']:
+        tool_calls = message2['tool_calls']
+        print(f"✓ LLM made {len(tool_calls)} tool call(s):")
         for call in tool_calls:
-            print(f"  - {call['function']['name']}({call['function']['arguments']})")
+            print(f"\n  Tool: {call['function']['name']}")
+            print(f"  Arguments: {call['function']['arguments']}")
+            try:
+                import json
+                args = json.loads(call['function']['arguments'])
+                print(f"  Parsed: paragraph_count = {args.get('paragraph_count', 'N/A')}")
+            except:
+                pass
     else:
-        print(f"With tools: {len(result2['choices'][0]['message']['content']) > 100}")
+        content2 = message2.get('content', '')
+        print(f"✗ No tool calls made")
+        print(f"Response preview: {content2[:200] if content2 else 'No content'}...")
+    
+    print("\n" + "="*60)
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
