@@ -6,7 +6,7 @@ help:
 	@echo "  make run          - Run the FastAPI server"
 	@echo "  make test         - Run all tests with pytest"
 	@echo "  make test-quick   - Run tests without LM Studio"
-	@echo "  make test-detail  - Run detailed Gemma conversation test"
+	@echo "  make test-llm     - Run LLM conversation tests"
 	@echo "  make test-server  - Run server and tests together"
 	@echo "  make act-test     - Test GitHub Actions locally with act"
 	@echo "  make act-list     - List available GitHub Actions workflows"
@@ -22,10 +22,10 @@ test:
 	uv run pytest tests/ -v
 
 test-quick:
-	uv run pytest tests/ -v -k "not lm_studio"
+	uv run pytest tests/ -v -k "not (llm or lm_studio)"
 
-test-detail:
-	uv run python tests/test_gemma_conversation.py
+test-llm:
+	uv run pytest tests/test_llm_conversation.py -v
 
 test-server:
 	@echo "Starting server and running tests..."

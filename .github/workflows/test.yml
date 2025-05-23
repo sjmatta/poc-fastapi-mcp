@@ -46,7 +46,7 @@ jobs:
       run: |
         if [ -n "$OPENAI_API_KEY" ]; then
           echo "Running LLM tests with OpenAI API"
-          uv run pytest tests/test_both.py::test_lm_studio -v -s
+          uv run pytest tests/test_api.py::TestLlmIntegration -v -s
         else
           echo "Skipping LLM tests (no OpenAI API key)"
         fi
