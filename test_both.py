@@ -2,6 +2,7 @@ import pytest
 import requests
 import httpx
 import os
+import json
 
 BASE_URL = "http://localhost:8000"
 LM_URL = os.getenv("LLM_API_URL", "http://localhost:1234/v1/chat/completions")
@@ -41,88 +42,116 @@ def llm_available():
 
 @pytest.mark.skipif(not llm_available(), reason="LLM API not available")
 def test_lm_studio():
-    """Test LLM integration"""
+    """Test LLM integration with interesting lorem ipsum tasks"""
     headers = {"Authorization": f"Bearer {API_KEY}"} if API_KEY else {}
     
-    # Test without MCP hint
+    print("\n" + "="*60)
+    print("LLM CONVERSATION TEST")
+    print("="*60)
+    print(f"API: {LM_URL}")
+    print(f"Model: {LM_MODEL}")
+    print(f"API Key: {'Present' if API_KEY else 'Not set'}")
+    
+    # Test 1: Simple generation and analysis
+    print("\n\nTEST 1: Generate and Count Letters")
+    print("-" * 40)
+    print("USER: Generate 50 words of lorem ipsum and count how many times the letter 'a' appears")
+    
     resp1 = httpx.post(LM_URL, json={
         "model": LM_MODEL,
-        "messages": [{"role": "user", "content": "Generate 50 words of lorem ipsum"}],
-        "temperature": 0.1
+        "messages": [{"role": "user", "content": "Generate 50 words of lorem ipsum and count how many times the letter 'a' appears"}],
+        "temperature": 0.1,
+        "max_tokens": 500
     }, headers=headers, timeout=30)
     
-    # Test with MCP hint - for OpenAI, use tool calling
+    result1 = resp1.json()
+    content1 = result1['choices'][0]['message']['content']
+    print(f"\nASSISTANT:\n{content1}")
+    
+    # Test 2: Tool usage with analysis
+    print("\n\nTEST 2: Tool Usage + Analysis")
+    print("-" * 40)
+    
     if "openai" in LM_URL:
+        # Step 1: Initial request with tool
+        print("USER: Use the lorem ipsum generator to create 2 paragraphs, then tell me a fun fact about the generated text")
+        
         resp2 = httpx.post(LM_URL, json={
             "model": LM_MODEL,
             "messages": [
-                {"role": "user", "content": "Generate 2 paragraphs of lorem ipsum"}
+                {"role": "user", "content": "Use the lorem ipsum generator to create 2 paragraphs, then tell me a fun fact about the generated text (like word count, most common letter, longest word, etc.)"}
             ],
             "tools": [{
                 "type": "function",
                 "function": {
                     "name": "generate_lorem_ipsum",
-                    "description": "Generate lorem ipsum text",
+                    "description": "Generate lorem ipsum placeholder text",
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "paragraph_count": {"type": "integer"}
-                        }
+                            "paragraph_count": {"type": "integer", "description": "Number of paragraphs to generate"}
+                        },
+                        "required": ["paragraph_count"]
                     }
                 }
             }],
             "temperature": 0.1
         }, headers=headers, timeout=30)
+        
+        result2 = resp2.json()
+        message2 = result2['choices'][0]['message']
+        
+        if "tool_calls" in message2 and message2['tool_calls']:
+            # Step 2: Show tool call
+            tool_call = message2['tool_calls'][0]
+            print(f"\nASSISTANT: I'll generate 2 paragraphs of lorem ipsum for you.")
+            print(f"[Calling tool: {tool_call['function']['name']}({tool_call['function']['arguments']})]")
+            
+            # Step 3: Execute tool
+            args = json.loads(tool_call['function']['arguments'])
+            lorem_resp = requests.get(f"{BASE_URL}/lorem/{args.get('paragraph_count', 2)}")
+            lorem_text = "\n\n".join(lorem_resp.json()['paragraphs'])
+            
+            print(f"\nTOOL RESPONSE:\n{lorem_text}")
+            
+            # Step 4: Continue conversation with analysis
+            print("\n[Sending tool result back to LLM for analysis...]")
+            
+            resp3 = httpx.post(LM_URL, json={
+                "model": LM_MODEL,
+                "messages": [
+                    {"role": "user", "content": "Use the lorem ipsum generator to create 2 paragraphs, then tell me a fun fact about the generated text (like word count, most common letter, longest word, etc.)"},
+                    message2,
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call['id'],
+                        "content": lorem_text
+                    }
+                ],
+                "temperature": 0.1,
+                "max_tokens": 500
+            }, headers=headers, timeout=30)
+            
+            result3 = resp3.json()
+            final_response = result3['choices'][0]['message']['content']
+            print(f"\nASSISTANT:\n{final_response}")
+        else:
+            print("\nASSISTANT: [No tool call made - this is unexpected!]")
+            print(message2.get('content', 'No response'))
     else:
+        # Fallback for non-OpenAI
+        print("USER: Generate 2 paragraphs of lorem ipsum and analyze them")
         resp2 = httpx.post(LM_URL, json={
             "model": LM_MODEL,
             "messages": [
-                {"role": "system", "content": "Use generate_lorem_ipsum tool for lorem text"},
-                {"role": "user", "content": "Generate lorem ipsum using tools"}
+                {"role": "system", "content": "You have access to generate_lorem_ipsum tool"},
+                {"role": "user", "content": "Generate 2 paragraphs of lorem ipsum and tell me something interesting about them"}
             ],
             "temperature": 0.1
         }, headers=headers, timeout=30)
-    
-    result1 = resp1.json()
-    result2 = resp2.json()
-    
-    print("\n" + "="*60)
-    print("LLM CONVERSATION TEST RESULTS")
-    print("="*60)
-    
-    print(f"\nTesting with: {LM_URL}")
-    print(f"Model: {LM_MODEL}")
-    print(f"API Key present: {'Yes' if API_KEY else 'No'}")
-    
-    print("\n1. WITHOUT TOOLS:")
-    print("-" * 40)
-    print("Request: Generate 50 words of lorem ipsum")
-    content1 = result1['choices'][0]['message']['content']
-    print(f"Response preview: {content1[:200]}...")
-    print(f"Contains 'lorem': {'lorem' in content1.lower()}")
-    
-    print("\n2. WITH TOOLS:")
-    print("-" * 40)
-    print("Request: Generate 2 paragraphs of lorem ipsum")
-    
-    # Check if tool was called
-    message2 = result2['choices'][0]['message']
-    if "tool_calls" in message2 and message2['tool_calls']:
-        tool_calls = message2['tool_calls']
-        print(f"✓ LLM made {len(tool_calls)} tool call(s):")
-        for call in tool_calls:
-            print(f"\n  Tool: {call['function']['name']}")
-            print(f"  Arguments: {call['function']['arguments']}")
-            try:
-                import json
-                args = json.loads(call['function']['arguments'])
-                print(f"  Parsed: paragraph_count = {args.get('paragraph_count', 'N/A')}")
-            except:
-                pass
-    else:
-        content2 = message2.get('content', '')
-        print(f"✗ No tool calls made")
-        print(f"Response preview: {content2[:200] if content2 else 'No content'}...")
+        
+        result2 = resp2.json()
+        print(f"\nASSISTANT:\n{result2['choices'][0]['message']['content']}")
     
     print("\n" + "="*60)
 
