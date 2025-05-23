@@ -1,4 +1,4 @@
-.PHONY: help setup run test test-detail clean server test-server
+.PHONY: help setup run test test-detail clean server test-server act-test act-list
 
 help:
 	@echo "Available commands:"
@@ -8,6 +8,8 @@ help:
 	@echo "  make test-quick   - Run tests without LM Studio"
 	@echo "  make test-detail  - Run detailed Gemma conversation test"
 	@echo "  make test-server  - Run server and tests together"
+	@echo "  make act-test     - Test GitHub Actions locally with act"
+	@echo "  make act-list     - List available GitHub Actions workflows"
 	@echo "  make clean        - Clean cache and temporary files"
 
 setup:
@@ -38,3 +40,11 @@ clean:
 	rm -rf __pycache__ .pytest_cache
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	find . -type f -name "*.pyc" -delete 2>/dev/null || true
+
+act-list:
+	act -l
+
+act-test:
+	@echo "Testing GitHub Actions locally with act..."
+	@echo "Make sure to add your OpenAI API key to .env file"
+	act push --secret-file .env

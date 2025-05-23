@@ -7,7 +7,12 @@ Minimal FastAPI app serving both REST APIs and MCP functionality.
 ## Setup
 
 ```bash
+# Install dependencies
 uv sync
+
+# For local testing with OpenAI (optional)
+cp .env.example .env
+# Edit .env and add your OpenAI API key
 ```
 
 ## Run Server
@@ -52,3 +57,17 @@ The test shows REST endpoints work. For true MCP integration:
 This demonstrates a single FastAPI app serving:
 - Traditional REST APIs (synchronous HTTP)
 - MCP tools (SSE-based protocol for LLM integration)
+
+## Testing GitHub Actions Locally
+
+Install `act` to test GitHub Actions locally:
+```bash
+brew install act  # macOS
+# or see https://github.com/nektos/act for other platforms
+
+# List workflows
+make act-list
+
+# Run tests locally (requires Docker)
+make act-test
+```
