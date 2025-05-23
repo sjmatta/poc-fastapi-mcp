@@ -2,72 +2,53 @@
 
 [![Tests](https://github.com/sjmatta/poc-fastapi-mcp/actions/workflows/test.yml/badge.svg)](https://github.com/sjmatta/poc-fastapi-mcp/actions/workflows/test.yml)
 
-Minimal FastAPI app serving both REST APIs and MCP functionality.
+Minimal FastAPI app serving both REST APIs and MCP functionality from a single application.
 
-## Setup
+## Quick Start
 
 ```bash
 # Install dependencies
 uv sync
 
-# For local testing with OpenAI (optional)
-cp .env.example .env
-# Edit .env and add your OpenAI API key
+# Run server
+make run
+
+# Run tests
+make test-quick
 ```
 
-## Run Server
+## Features
+
+- **REST API**: Traditional HTTP endpoints
+  - `GET /health` - Health check
+  - `GET /lorem/{count}` - Generate lorem ipsum paragraphs
+
+- **MCP Protocol**: LLM tool integration via SSE
+  - Tool: `generate_lorem_ipsum(paragraph_count: int)`
+  - Endpoint: `/mcp/mcp`
+
+## Development
 
 ```bash
-uv run uvicorn main:app --reload
+# All tests (including LLM integration)
+make test
+
+# Test with server running
+make test-server
+
+# Test GitHub Actions locally
+make act-test
 ```
 
-## Test REST APIs
+## Configuration
 
-```bash
-# In another terminal
-uv run python test_both.py
-```
-
-## MCP Integration with LM Studio
-
-### Important: MCP vs REST
-The test shows REST endpoints work. For true MCP integration:
-
-1. **MCP Server runs at**: `http://localhost:8000/mcp/mcp` (SSE endpoint)
-2. **Configure LM Studio**: Copy `mcp_config.json` settings to LM Studio
-3. **In LM Studio chat**: The model will have access to `generate_lorem_ipsum` tool
-
-### Setup MCP in LM Studio:
-1. Open LM Studio → Developer → MCP Servers
-2. Add the configuration from `mcp_config.json`
-3. Restart LM Studio
-4. In chat, ask: "Use the generate_lorem_ipsum tool to create 2 paragraphs"
-
-## Endpoints
-
-### REST API
-- `GET /health` - Health check
-- `GET /lorem/{count}` - Get lorem paragraphs
-
-### MCP Protocol
-- `/mcp/mcp` - SSE endpoint for MCP communication
-- Tool: `generate_lorem_ipsum(paragraph_count=1)`
+- Copy `.env.example` to `.env` for API keys
+- See `mcp_config.json` for LM Studio MCP setup
 
 ## Architecture
-This demonstrates a single FastAPI app serving:
+
+Single FastAPI application serving:
 - Traditional REST APIs (synchronous HTTP)
 - MCP tools (SSE-based protocol for LLM integration)
 
-## Testing GitHub Actions Locally
-
-Install `act` to test GitHub Actions locally:
-```bash
-brew install act  # macOS
-# or see https://github.com/nektos/act for other platforms
-
-# List workflows
-make act-list
-
-# Run tests locally (requires Docker)
-make act-test
-```
+Built with [uv](https://github.com/astral-sh/uv) for fast Python dependency management.

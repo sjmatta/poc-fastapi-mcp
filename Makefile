@@ -1,4 +1,4 @@
-.PHONY: help setup run test test-detail clean server test-server act-test act-list
+.PHONY: help setup run test test-quick test-llm test-server clean act-test act-list
 
 help:
 	@echo "Available commands:"
