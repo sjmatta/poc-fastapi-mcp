@@ -1,5 +1,7 @@
 # Lorem Ipsum MCP + FastAPI
 
+[![Tests](https://github.com/sjmatta/poc-fastapi-mcp/actions/workflows/test.yml/badge.svg)](https://github.com/sjmatta/poc-fastapi-mcp/actions/workflows/test.yml)
+
 Minimal FastAPI app serving both REST APIs and MCP functionality.
 
 ## Setup
