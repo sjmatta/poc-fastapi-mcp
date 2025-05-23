@@ -35,8 +35,16 @@ jobs:
         echo $! > server.pid
         sleep 5  # Wait for server to start
     
-    - name: Run tests (without LM Studio)
+    - name: Run tests (without LLM)
       run: uv run pytest test_both.py -v -k "not lm_studio"
+    
+    - name: Run LLM tests with OpenAI
+      if: ${{ secrets.OPENAI_API_KEY != '' }}
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        LLM_API_URL: "https://api.openai.com/v1/chat/completions"
+        LLM_MODEL: "gpt-3.5-turbo"
+      run: uv run pytest test_both.py::test_lm_studio -v -s
     
     - name: Stop server
       if: always()
