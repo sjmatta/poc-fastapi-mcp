@@ -69,17 +69,18 @@ def test_lm_studio():
     print(f"\nASSISTANT:\n{content1}")
     
     # Test 2: Tool usage with analysis
-    print("\n\nTEST 2: Tool Usage + Analysis")
+    print("\n\nTEST 2: Complete Tool Integration Flow")
     print("-" * 40)
     
     if "openai" in LM_URL:
         # Step 1: Initial request with tool
-        print("USER: Use the lorem ipsum generator to create 2 paragraphs, then tell me a fun fact about the generated text")
+        user_msg = "I need you to generate 2 paragraphs of lorem ipsum text using the tool, then analyze the generated text and tell me: 1) How many words it contains, 2) Which letter appears most frequently, 3) The longest word in the text. Show me both the generated text AND your analysis."
+        print(f"USER: {user_msg}")
         
         resp2 = httpx.post(LM_URL, json={
             "model": LM_MODEL,
             "messages": [
-                {"role": "user", "content": "Use the lorem ipsum generator to create 2 paragraphs, then tell me a fun fact about the generated text (like word count, most common letter, longest word, etc.)"}
+                {"role": "user", "content": user_msg}
             ],
             "tools": [{
                 "type": "function",
@@ -104,23 +105,26 @@ def test_lm_studio():
         if "tool_calls" in message2 and message2['tool_calls']:
             # Step 2: Show tool call
             tool_call = message2['tool_calls'][0]
-            print(f"\nASSISTANT: I'll generate 2 paragraphs of lorem ipsum for you.")
-            print(f"[Calling tool: {tool_call['function']['name']}({tool_call['function']['arguments']})]")
+            print(f"\nASSISTANT: I'll use the lorem ipsum generator to create 2 paragraphs and then analyze the text for you.")
+            print(f"\n[TOOL CALL: {tool_call['function']['name']}({tool_call['function']['arguments']})]")
             
-            # Step 3: Execute tool
+            # Step 3: Execute tool (simulating MCP server response)
             args = json.loads(tool_call['function']['arguments'])
             lorem_resp = requests.get(f"{BASE_URL}/lorem/{args.get('paragraph_count', 2)}")
             lorem_text = "\n\n".join(lorem_resp.json()['paragraphs'])
             
-            print(f"\nTOOL RESPONSE:\n{lorem_text}")
+            print(f"\n[TOOL RESPONSE - Generated Lorem Ipsum:]")
+            print("-" * 40)
+            print(lorem_text)
+            print("-" * 40)
             
-            # Step 4: Continue conversation with analysis
-            print("\n[Sending tool result back to LLM for analysis...]")
+            # Step 4: Send tool result back to LLM for final response
+            print("\n[Continuing conversation with tool result...]")
             
             resp3 = httpx.post(LM_URL, json={
                 "model": LM_MODEL,
                 "messages": [
-                    {"role": "user", "content": "Use the lorem ipsum generator to create 2 paragraphs, then tell me a fun fact about the generated text (like word count, most common letter, longest word, etc.)"},
+                    {"role": "user", "content": user_msg},
                     message2,
                     {
                         "role": "tool",
@@ -129,12 +133,31 @@ def test_lm_studio():
                     }
                 ],
                 "temperature": 0.1,
-                "max_tokens": 500
+                "max_tokens": 800
             }, headers=headers, timeout=30)
             
             result3 = resp3.json()
             final_response = result3['choices'][0]['message']['content']
-            print(f"\nASSISTANT:\n{final_response}")
+            
+            print(f"\nASSISTANT (Final Response):\n{final_response}")
+            
+            # Verify the response includes both the text and analysis
+            print("\n" + "-" * 40)
+            print("VERIFICATION:")
+            has_text = "lorem" in final_response.lower() or "text" in final_response.lower()
+            has_word_count = "word" in final_response.lower()
+            has_letter_analysis = "letter" in final_response.lower() or "character" in final_response.lower()
+            has_longest = "longest" in final_response.lower()
+            
+            print(f"✓ References the generated text: {has_text}")
+            print(f"✓ Includes word count: {has_word_count}")
+            print(f"✓ Includes letter analysis: {has_letter_analysis}")
+            print(f"✓ Identifies longest word: {has_longest}")
+            
+            if all([has_text, has_word_count, has_letter_analysis, has_longest]):
+                print("\n✅ SUCCESS: LLM properly used tool output to complete the analysis!")
+            else:
+                print("\n⚠️  WARNING: LLM response may be missing some analysis elements")
         else:
             print("\nASSISTANT: [No tool call made - this is unexpected!]")
             print(message2.get('content', 'No response'))
