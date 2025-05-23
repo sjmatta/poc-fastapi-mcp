@@ -2,7 +2,7 @@
   "mcpServers": {
     "lorem-ipsum": {
       "command": "uv",
-      "args": ["run", "uvicorn", "main:app", "--port", "8000"],
+      "args": ["run", "uvicorn", "src.main:app", "--port", "8000"],
       "cwd": "/Users/stephenmatta/dev/lorem"
     }
   }

@@ -31,12 +31,12 @@ jobs:
     
     - name: Start FastAPI server
       run: |
-        uv run uvicorn main:app --port 8000 &
+        uv run uvicorn src.main:app --port 8000 &
         echo $! > server.pid
         sleep 5  # Wait for server to start
     
     - name: Run tests (without LLM)
-      run: uv run pytest test_both.py -v -k "not lm_studio"
+      run: uv run pytest tests/ -v -k "not lm_studio"
     
     - name: Run LLM tests with OpenAI
       env:
@@ -46,7 +46,7 @@ jobs:
       run: |
         if [ -n "$OPENAI_API_KEY" ]; then
           echo "Running LLM tests with OpenAI API"
-          uv run pytest test_both.py::test_lm_studio -v -s
+          uv run pytest tests/test_both.py::test_lm_studio -v -s
         else
           echo "Skipping LLM tests (no OpenAI API key)"
         fi

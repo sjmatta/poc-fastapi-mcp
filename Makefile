@@ -16,22 +16,22 @@ setup:
 	uv sync
 
 run:
-	uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
+	uv run uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 
 test:
-	uv run pytest test_both.py -v
+	uv run pytest tests/ -v
 
 test-quick:
-	uv run pytest test_both.py -v -k "not lm_studio"
+	uv run pytest tests/ -v -k "not lm_studio"
 
 test-detail:
-	uv run python test_gemma_conversation.py
+	uv run python tests/test_gemma_conversation.py
 
 test-server:
 	@echo "Starting server and running tests..."
-	@uv run uvicorn main:app --port 8000 > /dev/null 2>&1 & SERVER_PID=$$!; \
+	@uv run uvicorn src.main:app --port 8000 > /dev/null 2>&1 & SERVER_PID=$$!; \
 	sleep 3; \
-	uv run pytest test_both.py -v -s; \
+	uv run pytest tests/ -v -s; \
 	TEST_EXIT=$$?; \
 	kill $$SERVER_PID 2>/dev/null || true; \
 	exit $$TEST_EXIT
