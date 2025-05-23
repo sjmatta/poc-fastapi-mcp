@@ -57,16 +57,25 @@ def test_lm_studio():
     print("-" * 40)
     print("USER: Generate 50 words of lorem ipsum and count how many times the letter 'a' appears")
     
-    resp1 = httpx.post(LM_URL, json={
-        "model": LM_MODEL,
-        "messages": [{"role": "user", "content": "Generate 50 words of lorem ipsum and count how many times the letter 'a' appears"}],
-        "temperature": 0.1,
-        "max_tokens": 500
-    }, headers=headers, timeout=30)
-    
-    result1 = resp1.json()
-    content1 = result1['choices'][0]['message']['content']
-    print(f"\nASSISTANT:\n{content1}")
+    try:
+        resp1 = httpx.post(LM_URL, json={
+            "model": LM_MODEL,
+            "messages": [{"role": "user", "content": "Generate 50 words of lorem ipsum and count how many times the letter 'a' appears"}],
+            "temperature": 0.1,
+            "max_tokens": 500
+        }, headers=headers, timeout=30)
+        
+        result1 = resp1.json()
+        if 'error' in result1:
+            print(f"\n❌ API Error in Test 1: {result1['error']}")
+            return
+        content1 = result1['choices'][0]['message']['content']
+        print(f"\nASSISTANT:\n{content1}")
+    except Exception as e:
+        print(f"\n❌ Error in Test 1: {e}")
+        print(f"Response status: {resp1.status_code}")
+        print(f"Response text: {resp1.text[:500]}")
+        return
     
     # Test 2: Tool usage with analysis
     print("\n\nTEST 2: Complete Tool Integration Flow")
@@ -121,11 +130,18 @@ def test_lm_studio():
             # Step 4: Send tool result back to LLM for final response
             print("\n[Continuing conversation with tool result...]")
             
+            # Create a clean assistant message for the conversation history
+            assistant_msg = {
+                "role": "assistant",
+                "content": message2.get('content'),  # Include content if any
+                "tool_calls": [tool_call]  # Only include the specific tool call we're responding to
+            }
+            
             resp3 = httpx.post(LM_URL, json={
                 "model": LM_MODEL,
                 "messages": [
                     {"role": "user", "content": user_msg},
-                    message2,
+                    assistant_msg,
                     {
                         "role": "tool",
                         "tool_call_id": tool_call['id'],
@@ -137,6 +153,9 @@ def test_lm_studio():
             }, headers=headers, timeout=30)
             
             result3 = resp3.json()
+            if 'error' in result3:
+                print(f"\n❌ OpenAI API Error: {result3['error']}")
+                return
             final_response = result3['choices'][0]['message']['content']
             
             print(f"\nASSISTANT (Final Response):\n{final_response}")
